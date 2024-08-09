@@ -8,6 +8,7 @@ from urllib.parse import urljoin
 import requests
 
 from tgtg.google_play_scraper import get_last_apk_version
+from tgtg.gmail import get_gmail_url
 
 from .exceptions import TgtgAPIError, TgtgLoginError, TgtgPollingError
 
@@ -16,6 +17,7 @@ API_ITEM_ENDPOINT = "item/v8/"
 FAVORITE_ITEM_ENDPOINT = "user/favorite/v1/{}/update"
 AUTH_BY_EMAIL_ENDPOINT = "auth/v3/authByEmail"
 AUTH_POLLING_ENDPOINT = "auth/v3/authByRequestPollingId"
+AUTH_BY_REQUEST_PIN_ENDPOINT = "auth/v5/authByRequestPin"
 SIGNUP_BY_EMAIL_ENDPOINT = "auth/v3/signUpByEmail"
 REFRESH_ENDPOINT = "auth/v3/token/refresh"
 ACTIVE_ORDER_ENDPOINT = "order/v7/active"
@@ -137,6 +139,32 @@ class TgtgClient:
             self.cookie = response.headers["Set-Cookie"]
         else:
             raise TgtgAPIError(response.status_code, response.content)
+    
+    def automatic_login(self, polling_id, cookie):
+        """(gmail) Retrieve the 6-digit pin from the tgtg-email."""
+        now = datetime.datetime.now()
+        timestamp = int(now.timestamp()) - 60
+        code = get_gmail_url(timestamp)
+        if code:
+            json = {
+                "device_type": self.device_type,
+                "email": self.email,
+                "request_pin": code,
+                "request_polling_id": polling_id,
+            }
+            headers = self._headers
+            headers["Cookie"] = cookie
+            time.sleep(5)
+            response = self.session.post(
+                self._get_url(AUTH_BY_REQUEST_PIN_ENDPOINT),
+                headers=headers,
+                json=json,
+            )
+            if response.status_code == 200:
+                print("Automatic login worked!")
+                return
+            else:
+                print(f"gmail >>> no new email yet. will try again in X seconds. {datetime.datetime.now().strftime('%H.%M.%S')}")
 
     def login(self):
         if not (
@@ -200,6 +228,11 @@ class TgtgClient:
                     "(Opening email on mobile won't work, if you have installed tgtg app.)\n"
                 )
                 time.sleep(POLLING_WAIT_TIME)
+                cookies = response.headers["Set-Cookie"]
+                datadome_cookie = [cookie for cookie in cookies.split(";") if cookie.startswith("datadome=")]
+                if len(datadome_cookie) == 1:
+                    datadome_cookie = datadome_cookie[0]
+                    self.automatic_login(polling_id, datadome_cookie)
                 continue
             elif response.status_code == HTTPStatus.OK:
                 sys.stdout.write("Logged in!\n")

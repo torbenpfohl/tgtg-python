@@ -125,3 +125,7 @@ dmypy.json
 
 # vscode
 .vscode
+
+# gmail creds
+credentials.json
+token.json
