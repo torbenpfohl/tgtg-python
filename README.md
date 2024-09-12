@@ -2,6 +2,16 @@
 [![codecov](https://codecov.io/gh/ahivert/tgtg-python/branch/master/graph/badge.svg)](https://codecov.io/gh/ahivert/tgtg-python)
 [![PyPI version](https://img.shields.io/pypi/v/tgtg?color=blue)](https://pypi.org/project/tgtg/)
 
+
+## for the automatic gmail login:
+
+ - To use the automatic gmail login you first need to follow the steps here:
+https://developers.google.com/gmail/api/quickstart/python
+   -  add the credentials.json into the same folder as this README.md is in.
+
+ - Than on the login() you should be redirected to your browser. There you need to click through all the steps.
+#
+
 # tgtg-python
 
 Python client that help you to talk with [TooGoodToGo](https://toogoodtogo.com) API.

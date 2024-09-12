@@ -162,9 +162,13 @@ class TgtgClient:
             )
             if response.status_code == 200:
                 print("Automatic login worked!")
-                return
+                return False
+            elif response.status_code == 403:
+                print("403 from Tgtg-auth-endpoint. Probably to many requests. Quit now and try again in maybe 2 hours or so.")
+                return True
             else:
-                print(f"gmail >>> no new email yet. will try again in X seconds. {datetime.datetime.now().strftime('%H.%M.%S')}")
+                print(f"gmail >>> no new email yet. will try again in X seconds. Tgtg-Returncode: {response.status_code}. Time: {datetime.datetime.now().strftime('%H.%M.%S')}")
+                return False
 
     def login(self):
         if not (
@@ -210,6 +214,7 @@ class TgtgClient:
                     raise TgtgLoginError(response.status_code, response.content)
 
     def start_polling(self, polling_id):
+        # TODO: Doesn't work anymore. Same polling-method as the login-function.
         for _ in range(MAX_POLLING_TRIES):
             response = self.session.post(
                 self._get_url(AUTH_POLLING_ENDPOINT),
@@ -232,7 +237,11 @@ class TgtgClient:
                 datadome_cookie = [cookie for cookie in cookies.split(";") if cookie.startswith("datadome=")]
                 if len(datadome_cookie) == 1:
                     datadome_cookie = datadome_cookie[0]
-                    self.automatic_login(polling_id, datadome_cookie)
+                    possibly_auth_error = self.automatic_login(polling_id, datadome_cookie)
+                    if possibly_auth_error:
+                        raise TgtgAPIError(
+                            response.status_code, "Too many requests. Try again later."
+                        )
                 continue
             elif response.status_code == HTTPStatus.OK:
                 sys.stdout.write("Logged in!\n")
@@ -427,6 +436,7 @@ class TgtgClient:
                 "country_id": country_id,
                 "device_type": self.device_type,
                 "email": email,
+                # "has_braze_sdk": True,
                 "name": name,
                 "newsletter_opt_in": newsletter_opt_in,
                 "push_notification_opt_in": push_notification_opt_in,

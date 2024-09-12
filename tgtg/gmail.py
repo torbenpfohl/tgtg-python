@@ -20,7 +20,9 @@ SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 RETRIES = 10
 OFFSET = 60  # seconds
 
-path = Path(__file__).parent
+path = Path(__file__).parent.parent
+token_path = os.path.join(path, "token.json")
+credentials_path = os.path.join(path, "credentials.json")
 
 def get_gmail_url(timestamp: int) -> str:
   """Shows basic usage of the Gmail API.
@@ -31,19 +33,19 @@ def get_gmail_url(timestamp: int) -> str:
   # The file token.json stores the user's access and refresh tokens, and is
   # created automatically when the authorization flow completes for the first
   # time.
-  if os.path.exists("token.json"):
-    creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+  if os.path.exists(token_path):
+    creds = Credentials.from_authorized_user_file(token_path, SCOPES)
   # If there are no (valid) credentials available, let the user log in.
   if not creds or not creds.valid:
     if creds and creds.expired and creds.refresh_token:
       creds.refresh(Request())
     else:
       flow = InstalledAppFlow.from_client_secrets_file(
-          os.path.join(path, "credentials.json"), SCOPES
+          os.path.join(path, credentials_path), SCOPES
       )
       creds = flow.run_local_server(port=0)
     # Save the credentials for the next run
-    with open("token.json", "w") as token:
+    with open(token_path, "w") as token:
       token.write(creds.to_json())
 
   try:

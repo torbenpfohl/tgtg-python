@@ -9,6 +9,9 @@ repository = "https://github.com/ahivert/tgtg-python"
 [tool.poetry.dependencies]
 python = "^3.8"
 requests = "^2.27.1"
+google-api-python-client = "^2.145.0"
+google-auth-httplib2 = "^0.2.0"
+google-auth-oauthlib = "^1.2.1"
 
 [tool.isort]
 profile = "black"
