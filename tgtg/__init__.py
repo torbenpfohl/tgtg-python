@@ -7,8 +7,8 @@ from urllib.parse import urljoin
 
 import requests
 
-from tgtg.google_play_scraper import get_last_apk_version
 from tgtg.gmail import get_gmail_url
+from tgtg.google_play_scraper import get_last_apk_version
 
 from .exceptions import TgtgAPIError, TgtgLoginError, TgtgPollingError
 
@@ -139,7 +139,7 @@ class TgtgClient:
             self.cookie = response.headers["Set-Cookie"]
         else:
             raise TgtgAPIError(response.status_code, response.content)
-    
+
     def automatic_login(self, polling_id, cookie):
         """(gmail) Retrieve the 6-digit pin from the tgtg-email."""
         now = datetime.datetime.now()
@@ -164,10 +164,17 @@ class TgtgClient:
                 print("Automatic login worked!")
                 return False
             elif response.status_code == 403:
-                print("403 from Tgtg-auth-endpoint. Probably to many requests. Quit now and try again in maybe 2 hours or so.")
+                print(
+                    "403 from Tgtg-auth-endpoint. Probably to many requests. \
+                        Quit now and try again in maybe 2 hours or so."
+                )
                 return True
             else:
-                print(f"gmail >>> no new email yet. will try again in X seconds. Tgtg-Returncode: {response.status_code}. Time: {datetime.datetime.now().strftime('%H.%M.%S')}")
+                print(
+                    f"gmail >>> no new email yet. will try again in X seconds. \
+                        Tgtg-Returncode: {response.status_code}. \
+                        Time: {datetime.datetime.now().strftime('%H.%M.%S')}"
+                )
                 return False
 
     def login(self):
@@ -234,10 +241,16 @@ class TgtgClient:
                 )
                 time.sleep(POLLING_WAIT_TIME)
                 cookies = response.headers["Set-Cookie"]
-                datadome_cookie = [cookie for cookie in cookies.split(";") if cookie.startswith("datadome=")]
+                datadome_cookie = [
+                    cookie
+                    for cookie in cookies.split(";")
+                    if cookie.startswith("datadome=")
+                ]
                 if len(datadome_cookie) == 1:
                     datadome_cookie = datadome_cookie[0]
-                    possibly_auth_error = self.automatic_login(polling_id, datadome_cookie)
+                    possibly_auth_error = self.automatic_login(
+                        polling_id, datadome_cookie
+                    )
                     if possibly_auth_error:
                         raise TgtgAPIError(
                             response.status_code, "Too many requests. Try again later."
@@ -445,13 +458,11 @@ class TgtgClient:
             timeout=self.timeout,
         )
         if response.status_code == HTTPStatus.OK:
-            self.access_token = response.json()["login_response"]["access_token"]
-            self.refresh_token = response.json()["login_response"]["refresh_token"]
-            self.last_time_token_refreshed = datetime.datetime.now()
-            self.user_id = response.json()["login_response"]["startup_data"]["user"][
-                "user_id"
-            ]
-            return self
+            first_signup_response = response.json()
+            if first_signup_response["state"] == "WAIT":
+                self.start_polling(first_signup_response["polling_id"])
+            else:
+                raise TgtgAPIError(response.status_code, response.content)
         else:
             raise TgtgAPIError(response.status_code, response.content)
 
